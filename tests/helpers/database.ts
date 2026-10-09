@@ -44,7 +44,12 @@ end;
 $$;
 `;
 
-const MIGRATIONS = ["0001_init.sql", "0002_rls.sql", "0003_realtime.sql"];
+const MIGRATIONS = [
+  "0001_init.sql",
+  "0002_rls.sql",
+  "0003_realtime.sql",
+  "0004_storage.sql",
+];
 
 function read(relative: string): string {
   return readFileSync(path.join(process.cwd(), relative), "utf8");

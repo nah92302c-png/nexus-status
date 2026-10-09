@@ -10,7 +10,7 @@ export function ConfigError() {
           ⚙
         </p>
         <h1 className="mt-4 text-xl font-bold text-white">
-          NEXUS STATUS is not configured
+          STATUS is not configured
         </h1>
         <p className="mt-2 text-sm text-slate-300">
           The database connection is missing. Set{" "}

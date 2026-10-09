@@ -14,7 +14,7 @@ export default function LoginPage() {
     if (isDemoMode()) {
       return (
         <main className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-4 py-16">
-          <div className="w-full rounded-2xl border border-nexus-border bg-nexus-surface p-6">
+          <div className="w-full rounded-2xl border border-app-border bg-app-surface p-6">
             <h1 className="text-lg font-bold text-white">Admin sign in</h1>
             <p className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
               Authentication is not configured (demo mode is active). Set{" "}
@@ -36,9 +36,9 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-4 py-16">
-      <div className="w-full rounded-2xl border border-nexus-border bg-nexus-surface p-6 shadow-sm">
+      <div className="w-full rounded-2xl border border-app-border bg-app-surface p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-400">
-          NEXUS STATUS
+          STATUS
         </p>
         <h1 className="mt-1 text-xl font-bold text-white">Admin sign in</h1>
         <p className="mt-1 text-sm text-slate-400">

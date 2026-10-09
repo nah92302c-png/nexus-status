@@ -1,5 +1,5 @@
 /**
- * Shared domain types for NEXUS STATUS.
+ * Shared domain types for STATUS.
  *
  * Status values, labels and severity live here so they are defined once and
  * imported everywhere (UI, validation, API, tests). Do not duplicate these

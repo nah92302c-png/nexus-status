@@ -1,14 +1,15 @@
-# NEXUS STATUS
+# STATUS
 
-A dark-themed service status dashboard for NEXUS. It shows the live status of
+A dark-themed service status dashboard. It shows the live status of
 **MW3, BO6, BO7, MW1, WARDOGS, ARC Raiders, Spoofer and MW4**, with a public
 dashboard, a password-protected admin area, a full audit trail, and a real
 database behind it.
 
-- **Public dashboard** — overall status, per-service cards, search, status
-  filters and summary counts.
+- **Public dashboard** — overall status, per-service cards with game artwork,
+  search, status filters and summary counts.
 - **Admin area** (`/admin`) — create, edit, hide, reorder and delete services,
-  set statuses and announcements, and read the append-only audit log.
+  upload an image per service, set statuses and announcements, and read the
+  append-only audit log.
 - **Real-time updates** — Supabase Realtime pushes changes to open dashboards,
   with 30-second polling as a fallback.
 
@@ -103,16 +104,18 @@ Open `.env.local` and paste the URL, anon key and service_role key.
 
 ### Step 3 — Create the database schema
 
-Open your Supabase project → **SQL Editor → New query**. Run the three migration
+Open your Supabase project → **SQL Editor → New query**. Run the four migration
 files **in order**, pasting each one and clicking **Run**:
 
 1. `supabase/migrations/0001_init.sql` — tables, constraints, triggers
 2. `supabase/migrations/0002_rls.sql` — Row Level Security and grants
 3. `supabase/migrations/0003_realtime.sql` — turns on Realtime for `services`
+4. `supabase/migrations/0004_storage.sql` — creates the `service-icons` bucket
+   and its policies (needed for image uploads)
 
 Then run the seed to add the eight services:
 
-4. `supabase/seed.sql`
+5. `supabase/seed.sql`
 
 The seed is **repeatable**: running it again never creates duplicates and never
 overwrites statuses or text you have changed in the admin area.
@@ -171,8 +174,13 @@ npm run db:verify
 - **Services** (`/admin`) — every service, in display order. Use the arrows to
   reorder, the dropdown to change status, **Edit** for the full form, and
   **Delete** to remove.
-- **Add service** — name, slug (auto-generated if left blank), description, icon
-  URL, status, status mode, announcement and visibility.
+- **Add / edit service** — name, slug (auto-generated if left blank),
+  description, **image** (upload a file or paste a URL), status, status mode,
+  announcement and visibility.
+- **Service images** — uploads go to the public `service-icons` Supabase Storage
+  bucket (max 3 MB; PNG, JPG, WEBP, GIF or AVIF). Only allow-listed admins can
+  upload or delete, and the card falls back to a text monogram when a service has
+  no image. This requires `0004_storage.sql` to have been applied.
 - **Audit log** (`/admin/audit`) — an append-only history of every change, who
   made it, and when.
 
@@ -230,6 +238,7 @@ Browser ──► Public dashboard (/)            ── reads visible services 
 Supabase Postgres ── services, admins, audit_log
 Supabase Auth     ── email + password sign-in (no public registration)
 Supabase Realtime ── pushes service changes to open dashboards
+Supabase Storage  ── public `service-icons` bucket for dashboard artwork
 ```
 
 Key ideas:
@@ -238,7 +247,8 @@ Key ideas:
   session cookie. Every admin page and API route independently verifies the
   session and the `admins` allow-list (`src/lib/auth.ts`).
 - **RLS is the real security boundary.** The anon key in the browser can only
-  read rows where `is_visible = true`; only allow-listed admins can write.
+  read rows where `is_visible = true`; only allow-listed admins can write. The
+  same rule protects the service image bucket.
 - **Validation happens in one place.** Zod schemas in `src/lib/validation.ts`
   are shared by the client and re-run on the server.
 - **Statuses are defined once.** `src/lib/types.ts` is the single source of
@@ -258,7 +268,7 @@ src/
   components/              # Dashboard, admin and shared UI
   lib/                     # Types, validation, auth, repository, env, errors
 supabase/
-  migrations/              # 0001 schema, 0002 RLS, 0003 realtime
+  migrations/              # 0001 schema, 0002 RLS, 0003 realtime, 0004 storage
   seed.sql                 # Repeatable seed
 scripts/                   # seed / make-admin / verify-db (service-role)
 tests/                     # Unit, component and real-Postgres (PGlite) tests
@@ -285,6 +295,8 @@ The suite includes:
   Library).
 - **Seed-sync test** — guarantees `supabase/seed.sql` and `scripts/seed-data.mjs`
   list the same services.
+- **Storage + card tests** — image type/size validation, unique storage paths,
+  and the image → monogram fallback on the dashboard card.
 
 ---
 
@@ -355,11 +367,13 @@ API.
 | Symptom | Fix |
 | --- | --- |
 | Dashboard shows the "Demo data" banner | `.env.local` is missing/blank — add your Supabase URL and anon key, then restart `npm run dev`. |
-| "NEXUS STATUS is not configured" in production | Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel and redeploy. |
+| "STATUS is not configured" in production | Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel and redeploy. |
 | Can't sign in | Make sure you ran `npm run admin:create`. Being a Supabase Auth user is not enough — you must be in the `admins` table. |
 | Sign-in seems to do nothing | Check Supabase **Authentication → URL Configuration** includes your URL. |
 | `npm run seed` says "Missing ..." | Fill in `.env.local` (URL + service_role key). |
 | Services don't update live | Realtime may be off; run `0003_realtime.sql`. Polling (every 30s) still works. |
+| Image upload fails in the admin form | Make sure `0004_storage.sql` was run: it creates the `service-icons` bucket and its policies. |
+| Images don't show on the dashboard | The bucket must be public (`public = true`). Re-run `0004_storage.sql`. |
 | `npm` won't run in PowerShell | Use `cmd /c "npm run dev"` or the Node/npm Command Prompt. |
 
 ---

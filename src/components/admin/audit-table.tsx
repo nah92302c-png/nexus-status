@@ -8,7 +8,7 @@ interface AuditTableProps {
 }
 
 const linkClass =
-  "rounded-lg border border-nexus-border px-3 py-1.5 text-xs text-slate-300 transition-colors hover:border-nexus-accent/50 hover:text-white disabled:pointer-events-none disabled:opacity-30";
+  "rounded-lg border border-app-border px-3 py-1.5 text-xs text-slate-300 transition-colors hover:border-app-accent/50 hover:text-white disabled:pointer-events-none disabled:opacity-30";
 
 /**
  * Append-only history of admin changes. Rendered server-side; pagination is
@@ -28,14 +28,14 @@ export function AuditTable({ page }: AuditTableProps) {
       </p>
 
       {items.length === 0 ? (
-        <p className="rounded-xl border border-nexus-border bg-nexus-surface p-6 text-center text-sm text-slate-400">
+        <p className="rounded-xl border border-app-border bg-app-surface p-6 text-center text-sm text-slate-400">
           No audit entries yet.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-nexus-border">
+        <div className="overflow-x-auto rounded-xl border border-app-border">
           <table className="w-full min-w-[640px] border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-nexus-border bg-nexus-surface-2 text-xs uppercase tracking-wide text-slate-400">
+              <tr className="border-b border-app-border bg-app-surface-2 text-xs uppercase tracking-wide text-slate-400">
                 <th scope="col" className="px-4 py-2.5 font-medium">
                   When
                 </th>
@@ -55,7 +55,7 @@ export function AuditTable({ page }: AuditTableProps) {
             </thead>
             <tbody>
               {items.map((entry) => (
-                <tr key={entry.id} className="border-b border-nexus-border last:border-0">
+                <tr key={entry.id} className="border-b border-app-border last:border-0">
                   <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-400">
                     {formatUtc(entry.changed_at)}
                   </td>

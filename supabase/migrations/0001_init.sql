@@ -1,5 +1,5 @@
 -- 0001_init.sql
--- NEXUS STATUS core schema.
+-- STATUS core schema.
 -- Apply this before 0002_rls.sql. Safe to run once on a fresh database.
 
 -- ---------------------------------------------------------------------------
@@ -30,7 +30,7 @@ create table if not exists public.services (
 );
 
 comment on table public.services is
-  'Status entries rendered on the public NEXUS STATUS dashboard.';
+  'Status entries rendered on the public STATUS dashboard.';
 comment on column public.services.status is
   'Manually curated or automatically observed status. "unknown" means not verified.';
 comment on column public.services.status_source is

@@ -4,6 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Service, ServiceStatus, StatusMode } from "@/lib/types";
 import { SERVICE_STATUSES, STATUS_MODES, STATUS_META } from "@/lib/types";
+import { getBrowserSupabase } from "@/lib/supabase/client";
+import {
+  ACCEPTED_IMAGE_TYPES,
+  MAX_IMAGE_BYTES,
+  MAX_IMAGE_LABEL,
+  SERVICE_ICONS_BUCKET,
+  buildImagePath,
+  isAcceptedImageType,
+} from "@/lib/storage";
 import { cn } from "@/lib/cn";
 
 interface ServiceFormProps {
@@ -43,7 +52,7 @@ function Field({
 }
 
 const inputClass =
-  "w-full rounded-lg border border-nexus-border bg-nexus-surface px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-nexus-accent focus:outline-none focus:ring-2 focus:ring-nexus-accent/30";
+  "w-full rounded-lg border border-app-border bg-app-surface px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-app-accent focus:outline-none focus:ring-2 focus:ring-app-accent/30";
 
 export function ServiceForm({ mode, service }: ServiceFormProps) {
   const router = useRouter();
@@ -62,6 +71,56 @@ export function ServiceForm({ mode, service }: ServiceFormProps) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleImageFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    // Reset so selecting the same file again still fires `change`.
+    event.target.value = "";
+    if (!file) return;
+
+    setUploadError(null);
+
+    if (!isAcceptedImageType(file.type)) {
+      setUploadError("Choose a PNG, JPG, WEBP, GIF or AVIF image.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setUploadError(`Image must be ${MAX_IMAGE_LABEL} or smaller.`);
+      return;
+    }
+
+    const supabase = getBrowserSupabase();
+    if (!supabase) {
+      setUploadError("Uploads are unavailable because Supabase is not configured.");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const path = buildImagePath(file.name);
+      const { error } = await supabase.storage
+        .from(SERVICE_ICONS_BUCKET)
+        .upload(path, file, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: file.type,
+        });
+      if (error) throw error;
+
+      const { data } = supabase.storage
+        .from(SERVICE_ICONS_BUCKET)
+        .getPublicUrl(path);
+      setIconUrl(data.publicUrl);
+    } catch {
+      setUploadError(
+        "Upload failed. Make sure the service-icons storage bucket and its policies exist (see migration 0004).",
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const payload = () => ({
     name: name.trim() || undefined,
@@ -163,16 +222,86 @@ export function ServiceForm({ mode, service }: ServiceFormProps) {
         />
       </Field>
 
-      <Field label="Icon URL" id="field-icon" error={fieldErrors.icon_url?.[0]}>
-        <input
-          id="field-icon"
-          type="url"
-          value={iconUrl}
-          onChange={(event) => setIconUrl(event.target.value)}
-          className={inputClass}
-          placeholder="https://… (optional)"
-        />
-      </Field>
+      <div>
+        <span className="mb-1 block text-sm font-medium text-slate-300">
+          Image
+        </span>
+        <div className="flex flex-col gap-3 rounded-xl border border-app-border bg-app-surface p-3.5 sm:flex-row sm:items-start">
+          <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-xl border border-app-border bg-app-surface-2">
+            {iconUrl ? (
+              // Admin-supplied URLs may point at any host; a plain <img> keeps
+              // them working without configuring next/image remote patterns.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={iconUrl}
+                alt="Current service image preview"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="px-2 text-center text-[11px] text-slate-500">
+                No image
+              </span>
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <label
+                className={cn(
+                  "inline-flex cursor-pointer items-center rounded-lg border border-app-border bg-app-surface-2 px-3 py-1.5 text-xs font-medium text-slate-200 transition-colors hover:border-slate-500",
+                  uploading && "cursor-wait opacity-60",
+                )}
+              >
+                {uploading
+                  ? "Uploading…"
+                  : iconUrl
+                    ? "Replace image"
+                    : "Upload image"}
+                <input
+                  type="file"
+                  accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                  onChange={handleImageFile}
+                  disabled={uploading}
+                  className="sr-only"
+                />
+              </label>
+              {iconUrl ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIconUrl("");
+                    setUploadError(null);
+                  }}
+                  className="text-xs font-medium text-rose-300 transition-colors hover:text-rose-200"
+                >
+                  Remove
+                </button>
+              ) : null}
+            </div>
+
+            <Field label="Or paste an image URL" id="field-icon" error={fieldErrors.icon_url?.[0]}>
+              <input
+                id="field-icon"
+                type="url"
+                value={iconUrl}
+                onChange={(event) => setIconUrl(event.target.value)}
+                className={inputClass}
+                placeholder="https://… (optional)"
+              />
+            </Field>
+
+            {uploadError ? (
+              <p role="alert" className="text-xs text-rose-400">
+                {uploadError}
+              </p>
+            ) : null}
+            <p className="text-xs text-slate-500">
+              Uploaded to your Supabase Storage bucket. PNG, JPG, WEBP, GIF or
+              AVIF, up to {MAX_IMAGE_LABEL}. Square images look best.
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Status" id="field-status" error={fieldErrors.status?.[0]}>
@@ -237,7 +366,7 @@ export function ServiceForm({ mode, service }: ServiceFormProps) {
           type="checkbox"
           checked={isVisible}
           onChange={(event) => setIsVisible(event.target.checked)}
-          className="h-4 w-4 rounded border-nexus-border accent-cyan-500"
+          className="h-4 w-4 rounded border-app-border accent-cyan-500"
         />
         Visible on the public dashboard
       </label>
@@ -263,21 +392,23 @@ export function ServiceForm({ mode, service }: ServiceFormProps) {
       <div className="flex items-center gap-3">
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || uploading}
           className="rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {submitting
-            ? "Saving…"
-            : mode === "create"
-              ? "Create service"
-              : "Save changes"}
+          {uploading
+            ? "Uploading…"
+            : submitting
+              ? "Saving…"
+              : mode === "create"
+                ? "Create service"
+                : "Save changes"}
         </button>
         <button
           type="button"
           onClick={() => router.push("/admin")}
           disabled={submitting}
           className={cn(
-            "rounded-lg border border-nexus-border px-4 py-2.5 text-sm text-slate-300 transition-colors hover:text-white disabled:opacity-50",
+            "rounded-lg border border-app-border px-4 py-2.5 text-sm text-slate-300 transition-colors hover:text-white disabled:opacity-50",
           )}
         >
           Cancel

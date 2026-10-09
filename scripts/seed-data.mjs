@@ -1,5 +1,5 @@
 /**
- * Canonical seed list for the eight initial NEXUS STATUS services.
+ * Canonical seed list for the eight initial STATUS services.
  *
  * Kept in sync with supabase/seed.sql by tests/seed-sync.test.ts, so the two
  * seeding paths (SQL and `npm run seed`) can never drift apart. New services

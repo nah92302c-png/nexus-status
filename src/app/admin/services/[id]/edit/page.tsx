@@ -23,7 +23,7 @@ export default async function EditServicePage({
       <p className="mt-1 text-sm text-slate-400">
         Update the service record. Status changes are written to the audit log.
       </p>
-      <div className="mt-6 rounded-2xl border border-nexus-border bg-nexus-surface p-6">
+      <div className="mt-6 rounded-2xl border border-app-border bg-app-surface p-6">
         <ServiceForm mode="edit" service={service} />
       </div>
     </div>

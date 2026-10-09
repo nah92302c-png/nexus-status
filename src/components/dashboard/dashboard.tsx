@@ -5,6 +5,7 @@ import type { Service } from "@/lib/types";
 import { SERVICE_STATUSES, STATUS_META } from "@/lib/types";
 import { DEFAULT_FILTER, filterServices, type DashboardFilter } from "@/lib/filters";
 import { countByStatus, overallStatus } from "@/lib/status";
+import { formatUtcShort } from "@/lib/format";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { publicServicesResponseSchema } from "@/lib/validation";
 import { cn } from "@/lib/cn";
@@ -29,6 +30,16 @@ async function fetchVisibleServices(): Promise<Service[]> {
     throw new Error("The services payload was not valid.");
   }
   return parsed.data.data;
+}
+
+/** Newest `updated_at` across the services, used for the "last updated" line. */
+function lastUpdatedAt(services: Service[]): string | null {
+  let newest: string | null = null;
+  for (const service of services) {
+    if (!service.updated_at) continue;
+    if (newest === null || service.updated_at > newest) newest = service.updated_at;
+  }
+  return newest;
 }
 
 export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardProps) {
@@ -78,24 +89,42 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
   const overall = useMemo(() => overallStatus(services), [services]);
   const counts = useMemo(() => countByStatus(services), [services]);
   const visible = useMemo(() => filterServices(services, filter), [services, filter]);
+  const updatedAt = useMemo(() => lastUpdatedAt(services), [services]);
 
   const setQuery = (query: string) => setFilter((f) => ({ ...f, query }));
   const setStatus = (status: DashboardFilter["status"]) =>
     setFilter((f) => ({ ...f, status }));
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-400">
-            NEXUS
-          </p>
-          <h1 className="text-2xl font-bold text-white sm:text-3xl">System Status</h1>
-        </div>
-        {demo ? <DemoBanner /> : null}
+    <main className="mx-auto w-full max-w-4xl flex-1 px-4 pb-10 pt-9 sm:px-6">
+      <section className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-[1.6rem]">
+          Live status
+        </h1>
+        <p className="mt-1 text-sm text-app-muted">
+          Current availability of games and products.
+        </p>
+      </section>
+
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-3 text-xs text-app-muted">
+        <span className="flex items-center gap-2">
+          <span
+            aria-hidden="true"
+            className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              demo ? "bg-amber-400" : "bg-emerald-400 shadow-[0_0_8px_#45d48380]",
+            )}
+          />
+          {demo ? "Demo data" : "Live data"}
+        </span>
+        <span>
+          Last updated <b className="font-semibold text-slate-200">{formatUtcShort(updatedAt)}</b>
+        </span>
       </div>
 
       <div className="space-y-6">
+        {demo ? <DemoBanner /> : null}
+
         <OverallBanner overall={overall} counts={counts} />
 
         {liveError ? (
@@ -105,7 +134,13 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
         ) : null}
 
         <section aria-label="Filter services" className="space-y-3">
-          <div>
+          <div className="relative">
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-base text-slate-500"
+            >
+              ⌕
+            </span>
             <label htmlFor="service-search" className="sr-only">
               Search services
             </label>
@@ -115,7 +150,7 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
               value={filter.query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search services…"
-              className="w-full rounded-lg border border-nexus-border bg-nexus-surface px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-nexus-accent focus:outline-none focus:ring-2 focus:ring-nexus-accent/30"
+              className="w-full rounded-lg border border-app-border bg-app-surface py-2.5 pl-9 pr-3.5 text-sm text-white placeholder:text-slate-500 focus:border-app-accent focus:outline-none focus:ring-2 focus:ring-app-accent/30"
             />
           </div>
 
@@ -127,8 +162,8 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
               className={cn(
                 "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                 filter.status === "all"
-                  ? "border-nexus-accent bg-nexus-accent/15 text-cyan-300"
-                  : "border-nexus-border bg-nexus-surface text-slate-300 hover:border-slate-500",
+                  ? "border-app-accent bg-app-accent/15 text-cyan-300"
+                  : "border-app-border bg-app-surface text-slate-300 hover:border-slate-500",
               )}
             >
               All ({counts.total})
@@ -145,8 +180,8 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
                   className={cn(
                     "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                     active
-                      ? "border-nexus-accent bg-nexus-accent/15 text-cyan-300"
-                      : "border-nexus-border bg-nexus-surface text-slate-300 hover:border-slate-500",
+                      ? "border-app-accent bg-app-accent/15 text-cyan-300"
+                      : "border-app-border bg-app-surface text-slate-300 hover:border-slate-500",
                   )}
                 >
                   <span aria-hidden="true">{meta.symbol}</span> {meta.label} (
@@ -158,18 +193,23 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
         </section>
 
         {visible.length === 0 ? (
-          <p className="rounded-xl border border-nexus-border bg-nexus-surface p-6 text-center text-sm text-slate-400">
+          <p className="rounded-2xl border border-dashed border-app-border bg-app-surface p-8 text-center text-sm text-app-muted">
             {services.length === 0
               ? "No services have been published yet."
               : "No services match the current search or filter."}
           </p>
         ) : (
-          <ul className="grid gap-3">
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {visible.map((service) => (
               <StatusCard key={service.id} service={service} />
             ))}
           </ul>
         )}
+
+        <p className="border-t border-white/5 pt-4 text-center text-xs text-app-muted">
+          Status updates automatically. Last updated{" "}
+          {formatUtcShort(updatedAt)}.
+        </p>
       </div>
     </main>
   );

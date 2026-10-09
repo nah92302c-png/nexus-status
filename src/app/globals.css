@@ -1,13 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-  /* NEXUS STATUS dark palette — used by utilities in components. */
-  --color-nexus-bg: #070b10;
-  --color-nexus-surface: #0d1420;
-  --color-nexus-surface-2: #121a29;
-  --color-nexus-border: #1d2a3d;
-  --color-nexus-accent: #22d3ee;
-  --color-nexus-accent-strong: #38bdf8;
+  /* STATUS dark palette — used by utilities in components. */
+  --color-app-bg: #090a0d;
+  --color-app-surface: #101115;
+  --color-app-surface-2: #14151a;
+  --color-app-border: #27282e;
+  --color-app-accent: #22d3ee;
+  --color-app-accent-strong: #38bdf8;
+  --color-app-text: #f3f3f5;
+  --color-app-muted: #92939d;
 
   --font-sans:
     "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
@@ -22,12 +24,216 @@ html {
 }
 
 body {
-  background-color: var(--color-nexus-bg);
-  color: var(--color-slate-200);
+  background-color: var(--color-app-bg);
+  color: var(--color-app-text);
   font-family: var(--font-sans);
   text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background-color: color-mix(in srgb, var(--color-nexus-accent) 30%, transparent);
+  background-color: color-mix(in srgb, var(--color-app-accent) 30%, transparent);
+}
+
+/* ------------------------------------------------------------------ */
+/* Public dashboard cards                                             */
+/* ------------------------------------------------------------------ */
+
+.status-card {
+  --glow: #78a8ff;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  border: 1px solid #ffffff17;
+  background: linear-gradient(125deg, #15171d 0%, #101116 58%, #15171c 100%);
+  border-radius: 1rem;
+  padding: 1.375rem;
+  min-height: 8.875rem;
+  box-shadow: 0 8px 24px #0002, inset 0 1px #ffffff08;
+  transition:
+    transform 0.38s cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 0.35s ease,
+    background 0.35s ease,
+    box-shadow 0.38s ease;
+  animation: card-in 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.status-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: radial-gradient(
+    ellipse at 0% 0%,
+    color-mix(in srgb, var(--glow) 16%, transparent),
+    transparent 55%
+  );
+  opacity: 0.8;
+  transition: opacity 0.4s ease;
+}
+
+.status-card::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -70%;
+  left: -65%;
+  width: 45%;
+  height: 240%;
+  transform: rotate(22deg);
+  background: linear-gradient(90deg, transparent, #ffffff09, transparent);
+  transition: left 0.75s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.status-card:hover {
+  transform: translateY(-6px) scale(1.012);
+  border-color: color-mix(in srgb, var(--glow) 60%, #ffffff20);
+  background: linear-gradient(125deg, #191b22 0%, #121319 58%, #191b22 100%);
+  box-shadow:
+    0 18px 42px #0007,
+    0 0 28px color-mix(in srgb, var(--glow) 12%, transparent),
+    inset 0 1px #ffffff15;
+}
+
+.status-card:hover::before {
+  opacity: 1;
+}
+
+.status-card:hover::after {
+  left: 125%;
+}
+
+.status-card:nth-child(2) {
+  animation-delay: 0.04s;
+}
+.status-card:nth-child(3) {
+  animation-delay: 0.08s;
+}
+.status-card:nth-child(4) {
+  animation-delay: 0.12s;
+}
+.status-card:nth-child(5) {
+  animation-delay: 0.16s;
+}
+.status-card:nth-child(6) {
+  animation-delay: 0.2s;
+}
+.status-card:nth-child(7) {
+  animation-delay: 0.24s;
+}
+.status-card:nth-child(8) {
+  animation-delay: 0.28s;
+}
+
+.status-card:nth-child(8n + 1) {
+  --glow: #6ce0a1;
+}
+.status-card:nth-child(8n + 2) {
+  --glow: #f28b61;
+}
+.status-card:nth-child(8n + 3) {
+  --glow: #65c7f2;
+}
+.status-card:nth-child(8n + 4) {
+  --glow: #aab5a7;
+}
+.status-card:nth-child(8n + 5) {
+  --glow: #e3b46a;
+}
+.status-card:nth-child(8n + 6) {
+  --glow: #70dce5;
+}
+.status-card:nth-child(8n + 7) {
+  --glow: #a99aff;
+}
+.status-card:nth-child(8n) {
+  --glow: #a4d2bf;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.game-icon {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  flex: 0 0 6.625rem;
+  width: 6.625rem;
+  height: 5.875rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 0.5rem;
+  border-radius: 12px;
+  border: 1px solid #ffffff25;
+  background: linear-gradient(
+    135deg,
+    #14161c 0%,
+    color-mix(in srgb, var(--glow) 42%, transparent) 50%,
+    #0b0c10 100%
+  );
+  box-shadow: inset 0 0 28px #0007, 0 7px 20px #0004;
+  transition:
+    transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 0.4s ease;
+}
+
+.status-card:hover .game-icon {
+  transform: scale(1.055) rotate(-1.5deg);
+  filter: saturate(1.18);
+}
+
+.game-icon .monogram {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+  font-weight: 900;
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  text-shadow: 0 1px 5px #000;
+}
+
+.game-icon img {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 760px) {
+  .status-card {
+    padding: 1.0625rem;
+    gap: 0.875rem;
+    min-height: 7.875rem;
+  }
+  .game-icon {
+    flex-basis: 5.125rem;
+    width: 5.125rem;
+    height: 4.875rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

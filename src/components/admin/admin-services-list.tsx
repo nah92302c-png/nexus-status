@@ -98,7 +98,7 @@ export function AdminServicesList({ services }: AdminServicesListProps) {
       ) : null}
 
       {services.length === 0 ? (
-        <p className="rounded-xl border border-nexus-border bg-nexus-surface p-6 text-center text-sm text-slate-400">
+        <p className="rounded-xl border border-app-border bg-app-surface p-6 text-center text-sm text-slate-400">
           No services yet. Add your first service to get started.
         </p>
       ) : (
@@ -108,7 +108,7 @@ export function AdminServicesList({ services }: AdminServicesListProps) {
             return (
               <li
                 key={service.id}
-                className="flex flex-wrap items-center gap-3 rounded-xl border border-nexus-border bg-nexus-surface p-3.5"
+                className="flex flex-wrap items-center gap-3 rounded-xl border border-app-border bg-app-surface p-3.5"
               >
                 <div className="flex flex-col gap-1">
                   <button
@@ -116,7 +116,7 @@ export function AdminServicesList({ services }: AdminServicesListProps) {
                     aria-label={`Move ${service.name} up`}
                     disabled={index === 0 || busyId !== null}
                     onClick={() => move(index, -1)}
-                    className="rounded border border-nexus-border px-1.5 text-xs text-slate-400 hover:text-white disabled:opacity-30"
+                    className="rounded border border-app-border px-1.5 text-xs text-slate-400 hover:text-white disabled:opacity-30"
                   >
                     ↑
                   </button>
@@ -125,7 +125,7 @@ export function AdminServicesList({ services }: AdminServicesListProps) {
                     aria-label={`Move ${service.name} down`}
                     disabled={index === services.length - 1 || busyId !== null}
                     onClick={() => move(index, 1)}
-                    className="rounded border border-nexus-border px-1.5 text-xs text-slate-400 hover:text-white disabled:opacity-30"
+                    className="rounded border border-app-border px-1.5 text-xs text-slate-400 hover:text-white disabled:opacity-30"
                   >
                     ↓
                   </button>
@@ -158,7 +158,7 @@ export function AdminServicesList({ services }: AdminServicesListProps) {
                     onChange={(event) =>
                       changeStatus(service, event.target.value as ServiceStatus)
                     }
-                    className="rounded-lg border border-nexus-border bg-nexus-surface px-2 py-1.5 text-xs text-slate-200 focus:border-nexus-accent focus:outline-none disabled:opacity-50"
+                    className="rounded-lg border border-app-border bg-app-surface px-2 py-1.5 text-xs text-slate-200 focus:border-app-accent focus:outline-none disabled:opacity-50"
                   >
                     {SERVICE_STATUSES.map((status) => (
                       <option key={status} value={status}>
@@ -169,7 +169,7 @@ export function AdminServicesList({ services }: AdminServicesListProps) {
 
                   <Link
                     href={`/admin/services/${service.id}/edit`}
-                    className="rounded-lg border border-nexus-border px-2.5 py-1.5 text-xs text-slate-300 transition-colors hover:border-nexus-accent/50 hover:text-white"
+                    className="rounded-lg border border-app-border px-2.5 py-1.5 text-xs text-slate-300 transition-colors hover:border-app-accent/50 hover:text-white"
                   >
                     Edit
                   </Link>
@@ -177,7 +177,7 @@ export function AdminServicesList({ services }: AdminServicesListProps) {
                     type="button"
                     onClick={() => remove(service)}
                     disabled={busyId !== null}
-                    className="rounded-lg border border-nexus-border px-2.5 py-1.5 text-xs text-slate-300 transition-colors hover:border-rose-500/50 hover:text-rose-300 disabled:opacity-50"
+                    className="rounded-lg border border-app-border px-2.5 py-1.5 text-xs text-slate-300 transition-colors hover:border-rose-500/50 hover:text-rose-300 disabled:opacity-50"
                   >
                     Delete
                   </button>

@@ -1,5 +1,5 @@
 -- 0002_rls.sql
--- Row Level Security for NEXUS STATUS.
+-- Row Level Security for STATUS.
 -- Apply after 0001_init.sql.
 
 -- ---------------------------------------------------------------------------

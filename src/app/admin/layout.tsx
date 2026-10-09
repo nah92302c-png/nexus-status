@@ -26,11 +26,16 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-nexus-border bg-nexus-bg/80 backdrop-blur">
+      <header className="border-b border-app-border bg-app-bg/80 backdrop-blur">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-6">
-            <Link href="/" className="text-base font-bold tracking-[0.15em] text-white">
-              NEXUS <span className="text-cyan-400">STATUS</span>
+            <Link href="/" className="flex items-center gap-2">
+              <span className="grid h-6 w-6 place-items-center rounded-md bg-[#f2f2f3] text-xs font-black text-[#111]">
+                S
+              </span>
+              <span className="text-sm font-extrabold tracking-[0.13em] text-white">
+                STATUS
+              </span>
             </Link>
             <AdminNav />
           </div>

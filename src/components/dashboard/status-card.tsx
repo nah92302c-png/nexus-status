@@ -1,33 +1,36 @@
 import type { Service } from "@/lib/types";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { ServiceIcon } from "./service-icon";
 
 interface StatusCardProps {
   service: Service;
 }
 
-/** A single service row on the public dashboard. */
+/** A single service card on the public dashboard. */
 export function StatusCard({ service }: StatusCardProps) {
   return (
-    <li
-      data-testid="status-card"
-      className="rounded-xl border border-nexus-border bg-nexus-surface p-4 shadow-sm transition-colors hover:border-nexus-accent/40"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="truncate text-base font-semibold text-white">
-            {service.name}
-          </h3>
-          {service.description ? (
-            <p className="mt-0.5 text-sm text-slate-400">{service.description}</p>
-          ) : null}
-        </div>
+    <li data-testid="status-card" className="status-card">
+      <ServiceIcon name={service.name} iconUrl={service.icon_url} />
+
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate text-base font-semibold text-white">
+          {service.name}
+        </h3>
+        {service.description ? (
+          <p className="mt-0.5 line-clamp-2 text-sm text-app-muted">
+            {service.description}
+          </p>
+        ) : null}
+        {service.announcement ? (
+          <p className="mt-2 rounded-lg border border-sky-500/30 bg-sky-500/10 px-2.5 py-1.5 text-xs text-sky-200">
+            {service.announcement}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="shrink-0">
         <StatusBadge status={service.status} />
       </div>
-      {service.announcement ? (
-        <p className="mt-3 rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-sm text-sky-200">
-          {service.announcement}
-        </p>
-      ) : null}
     </li>
   );
 }

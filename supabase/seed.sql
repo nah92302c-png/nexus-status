@@ -1,5 +1,5 @@
 -- seed.sql
--- Repeatable seed for the eight initial NEXUS STATUS services.
+-- Repeatable seed for the eight initial STATUS services.
 --
 -- Idempotency contract:
 --   * ON CONFLICT (slug) DO NOTHING  -> re-running never creates duplicates.

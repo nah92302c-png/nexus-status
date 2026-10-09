@@ -1,4 +1,4 @@
-// Seed the eight initial NEXUS STATUS services through the Supabase REST API.
+// Seed the eight initial STATUS services through the Supabase REST API.
 //
 //   npm run seed
 //

@@ -10,7 +10,7 @@ export default function NewServicePage() {
       <p className="mt-1 text-sm text-slate-400">
         Create a new status entry for the public dashboard.
       </p>
-      <div className="mt-6 rounded-2xl border border-nexus-border bg-nexus-surface p-6">
+      <div className="mt-6 rounded-2xl border border-app-border bg-app-surface p-6">
         <ServiceForm mode="create" />
       </div>
     </div>
