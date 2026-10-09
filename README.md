@@ -370,10 +370,11 @@ API.
   manually by admins. The schema (`status_mode`, `status_source`,
   `last_checked_at`) is ready for a monitor later, but no monitor is included and
   no status is ever invented.
-- **Live Realtime was not exercised against a real Supabase project** during
-  development (no cloud project was available). It is configured correctly and
-  covered by configuration, but treat the first live connection as unverified
-  until you watch it end-to-end. The 30-second polling fallback works regardless.
+- **Realtime was exercised against a live Supabase project** during final
+  acceptance testing: an anonymous subscriber received `postgres_changes` events
+  when a service row changed (confirmed in the browser and by a scripted
+  channel). It is not exhaustively load-tested, and the 30-second polling
+  fallback still runs if Realtime is unavailable.
 - **The free tiers are non-commercial / limited** as described above.
 - This is a single-admin-role app; there is one `admin` role, not granular
   permissions.
