@@ -81,27 +81,28 @@ describe("Dashboard status filter", () => {
     renderDashboard();
 
     // Counts are computed from all services, not the filtered subset.
-    expect(screen.getByTestId("count-total")).toHaveTextContent("3 services");
-    expect(screen.getByTestId("count-online")).toHaveTextContent("Online: 1");
-    expect(screen.getByTestId("count-offline")).toHaveTextContent("Offline: 1");
+    expect(screen.getByTestId("count-total")).toHaveTextContent("3");
+    expect(screen.getByTestId("count-online")).toHaveTextContent("Online");
+    expect(screen.getByTestId("count-online")).toHaveTextContent("1");
+    expect(screen.getByTestId("count-updating")).toHaveTextContent("0");
 
-    fireEvent.click(screen.getByRole("button", { name: /Offline/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Online/ }));
 
     const cards = screen.getAllByTestId("status-card");
     expect(cards).toHaveLength(1);
-    expect(cards[0]).toHaveTextContent("BO6");
+    expect(cards[0]).toHaveTextContent("MW3");
   });
 
   it("combines search and status filters", () => {
     renderDashboard();
     fireEvent.change(screen.getByLabelText("Search services"), {
-      target: { value: "o" },
+      target: { value: "mw" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /Unknown/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Online/ }));
 
     const cards = screen.getAllByTestId("status-card");
     expect(cards).toHaveLength(1);
-    expect(cards[0]).toHaveTextContent("Spoofer");
+    expect(cards[0]).toHaveTextContent("MW3");
   });
 
   it("resets to all services with the All filter", () => {
@@ -113,22 +114,16 @@ describe("Dashboard status filter", () => {
     expect(screen.getAllByTestId("status-card")).toHaveLength(3);
   });
 });
-
-describe("Dashboard overall status", () => {
-  it("reports a disruption when any service is offline", () => {
+describe("Dashboard connection state", () => {
+  it("shows a live connection indicator for real data", () => {
     renderDashboard();
-    expect(screen.getByText("Service Disruption")).toBeInTheDocument();
+    expect(screen.getByText("Live status")).toBeInTheDocument();
   });
 
-  it("reports fully operational when every service is online", () => {
-    renderDashboard([makeService("00000000-0000-4000-8000-000000000009", "MW4", "online")]);
-    expect(screen.getByText("All Systems Operational")).toBeInTheDocument();
-  });
-
-  it("does not report operational when a service is unknown", () => {
-    renderDashboard([
-      makeService("00000000-0000-4000-8000-00000000000a", "MW4", "unknown"),
-    ]);
-    expect(screen.getByText("Status Partially Unknown")).toBeInTheDocument();
+  it("labels the connection as demo data in demo mode", () => {
+    render(
+      <Dashboard initialServices={SERVICES} demo pollIntervalMs={30000} />,
+    );
+    expect(screen.getByText("Demo data")).toBeInTheDocument();
   });
 });

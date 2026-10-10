@@ -1,16 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import type { Service } from "@/lib/types";
 import { SERVICE_STATUSES, STATUS_META } from "@/lib/types";
 import { DEFAULT_FILTER, filterServices, type DashboardFilter } from "@/lib/filters";
-import { countByStatus, overallStatus } from "@/lib/status";
+import { countByStatus } from "@/lib/status";
 import { formatUtcShort } from "@/lib/format";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { publicServicesResponseSchema } from "@/lib/validation";
 import { cn } from "@/lib/cn";
 import { StatusCard } from "./status-card";
-import { OverallBanner } from "./overall-banner";
 import { DemoBanner } from "./demo-banner";
 
 interface DashboardProps {
@@ -18,6 +18,9 @@ interface DashboardProps {
   demo: boolean;
   pollIntervalMs: number;
 }
+
+const LIVE_ERROR =
+  "Live updates are temporarily unavailable; showing the last known state.";
 
 async function fetchVisibleServices(): Promise<Service[]> {
   const response = await fetch("/api/services", { cache: "no-store" });
@@ -46,6 +49,7 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
   const [services, setServices] = useState<Service[]>(initialServices);
   const [filter, setFilter] = useState<DashboardFilter>(DEFAULT_FILTER);
   const [liveError, setLiveError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const liveTimer = useRef<number | null>(null);
 
   const refresh = useCallback(async () => {
@@ -54,6 +58,17 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
     setLiveError(null);
   }, []);
 
+  const manualRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refresh();
+    } catch {
+      setLiveError(LIVE_ERROR);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refresh]);
+
   useEffect(() => {
     if (demo) return;
 
@@ -61,9 +76,7 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
     if (!supabase) return;
 
     const onLiveEvent = () => {
-      refresh().catch(() =>
-        setLiveError("Live updates are temporarily unavailable; showing the last known state."),
-      );
+      refresh().catch(() => setLiveError(LIVE_ERROR));
     };
 
     const channel = supabase
@@ -86,7 +99,6 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
     };
   }, [demo, pollIntervalMs, refresh]);
 
-  const overall = useMemo(() => overallStatus(services), [services]);
   const counts = useMemo(() => countByStatus(services), [services]);
   const visible = useMemo(() => filterServices(services, filter), [services, filter]);
   const updatedAt = useMemo(() => lastUpdatedAt(services), [services]);
@@ -95,78 +107,66 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
   const setStatus = (status: DashboardFilter["status"]) =>
     setFilter((f) => ({ ...f, status }));
 
+  const connected = liveError === null;
+  const connectionLabel = demo
+    ? "Demo data"
+    : connected
+      ? "Live status"
+      : "Reconnecting";
+
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 px-4 pb-10 pt-9 sm:px-6">
-      <section className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-[1.6rem]">
-          Live status
-        </h1>
-        <p className="mt-1 text-sm text-app-muted">
-          Current availability of games and products.
-        </p>
-      </section>
+    <div className="site-shell flex min-h-screen flex-col">
+      <a className="skip-link" href="#products">
+        Skip to products
+      </a>
 
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-3 text-xs text-app-muted">
-        <span className="flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className={cn(
-              "h-1.5 w-1.5 rounded-full",
-              demo ? "bg-amber-400" : "bg-emerald-400 shadow-[0_0_8px_#45d48380]",
-            )}
-          />
-          {demo ? "Demo data" : "Live data"}
-        </span>
-        <span>
-          Last updated <b className="font-semibold text-slate-200">{formatUtcShort(updatedAt)}</b>
-        </span>
-      </div>
-
-      <div className="space-y-6">
-        {demo ? <DemoBanner /> : null}
-
-        <OverallBanner overall={overall} counts={counts} />
-
-        {liveError ? (
-          <p role="status" className="text-sm text-amber-300">
-            {liveError}
-          </p>
-        ) : null}
-
-        <section aria-label="Filter services" className="space-y-3">
-          <div className="relative">
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-base text-slate-500"
-            >
-              ⌕
-            </span>
-            <label htmlFor="service-search" className="sr-only">
-              Search services
-            </label>
-            <input
-              id="service-search"
-              type="search"
-              value={filter.query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search services…"
-              className="w-full rounded-lg border border-app-border bg-app-surface py-2.5 pl-9 pr-3.5 text-sm text-white placeholder:text-slate-500 focus:border-app-accent focus:outline-none focus:ring-2 focus:ring-app-accent/30"
+      <header className="site-header">
+        <Link className="brand" href="/" aria-label="STATUS home">
+          <svg className="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+            <rect
+              x="3"
+              y="3"
+              width="34"
+              height="34"
+              rx="10"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
             />
-          </div>
+            <path
+              d="M8 21h5l3-8 5 15 4-10 3 3h4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <h1>STATUS</h1>
+        </Link>
 
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
+        <div className="header-status">
+          <div className={cn("connection", !connected && "disconnected")}>
+            <span className="signal-dot" />
+            <span>{connectionLabel}</span>
+          </div>
+          <div className="check-info">
+            Last updated <time>{formatUtcShort(updatedAt)}</time>
+          </div>
+        </div>
+      </header>
+
+      <main id="products" aria-label="Products" className="flex-1">
+        <div className="toolbar">
+          <div className="status-filters" role="group" aria-label="Filter by status">
             <button
               type="button"
+              className={cn("filter", filter.status === "all" && "active")}
               aria-pressed={filter.status === "all"}
+              data-testid="count-total"
               onClick={() => setStatus("all")}
-              className={cn(
-                "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                filter.status === "all"
-                  ? "border-app-accent bg-app-accent/15 text-cyan-300"
-                  : "border-app-border bg-app-surface text-slate-300 hover:border-slate-500",
-              )}
             >
-              All ({counts.total})
+              All <span>{counts.total}</span>
             </button>
             {SERVICE_STATUSES.map((status) => {
               const meta = STATUS_META[status];
@@ -175,42 +175,90 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
                 <button
                   key={status}
                   type="button"
+                  className={cn("filter", active && "active")}
                   aria-pressed={active}
+                  data-testid={`count-${status}`}
                   onClick={() => setStatus(status)}
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                    active
-                      ? "border-app-accent bg-app-accent/15 text-cyan-300"
-                      : "border-app-border bg-app-surface text-slate-300 hover:border-slate-500",
-                  )}
                 >
-                  <span aria-hidden="true">{meta.symbol}</span> {meta.label} (
-                  {counts[status]})
+                  <i className={cn("legend-dot", status)} aria-hidden="true" />
+                  {meta.label} <span>{counts[status]}</span>
                 </button>
               );
             })}
           </div>
-        </section>
 
-        {visible.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-app-border bg-app-surface p-8 text-center text-sm text-app-muted">
-            {services.length === 0
-              ? "No services have been published yet."
-              : "No services match the current search or filter."}
-          </p>
-        ) : (
-          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {visible.map((service) => (
-              <StatusCard key={service.id} service={service} />
-            ))}
-          </ul>
-        )}
+          <div className="toolbar-actions">
+            <label className="search">
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <circle cx="8.5" cy="8.5" r="5.5" />
+                <path d="m13 13 4 4" />
+              </svg>
+              <span className="sr-only">Search services</span>
+              <input
+                id="service-search"
+                type="search"
+                value={filter.query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search…"
+                autoComplete="off"
+                maxLength={120}
+              />
+            </label>
 
-        <p className="border-t border-white/5 pt-4 text-center text-xs text-app-muted">
-          Status updates automatically. Last updated{" "}
-          {formatUtcShort(updatedAt)}.
-        </p>
-      </div>
-    </main>
+            <button
+              type="button"
+              className="refresh-button"
+              onClick={manualRefresh}
+              aria-busy={refreshing}
+              aria-label="Refresh status"
+              title="Refresh status"
+            >
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M16.3 7A7 7 0 1 0 17 11M16.5 2.5V7h-4.5" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          {demo ? <DemoBanner /> : null}
+
+          {liveError ? (
+            <p role="status" className="notice">
+              {liveError}
+            </p>
+          ) : null}
+
+          {visible.length === 0 ? (
+            <div className="empty-state">
+              <h2>No services found</h2>
+              <p>
+                {services.length === 0
+                  ? "No services have been published yet."
+                  : "No services match the current search or filter."}
+              </p>
+            </div>
+          ) : (
+            <ul className="product-grid">
+              {visible.map((service) => (
+                <StatusCard key={service.id} service={service} />
+              ))}
+            </ul>
+          )}
+        </div>
+      </main>
+
+      <footer className="site-footer">
+        <span>
+          {counts.total} {counts.total === 1 ? "service" : "services"}
+        </span>
+        <span className="flex items-center gap-3">
+          <span>
+            Status updates automatically · Last updated {formatUtcShort(updatedAt)}
+          </span>
+          <Link href="/admin">Admin</Link>
+        </span>
+      </footer>
+    </div>
   );
 }

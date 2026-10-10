@@ -29,7 +29,7 @@ export function ServiceIcon({ name, iconUrl, className }: ServiceIconProps) {
   const showImage = Boolean(iconUrl) && !failed;
 
   return (
-    <div className={cn("game-icon", className)} aria-hidden="true">
+    <div className={cn("product-art", className)} aria-hidden="true">
       <span className="monogram">{monogramFor(name)}</span>
       {showImage ? (
         // Artwork URLs are admin-supplied and may point at any host, so a plain
@@ -38,6 +38,8 @@ export function ServiceIcon({ name, iconUrl, className }: ServiceIconProps) {
         <img
           src={iconUrl ?? undefined}
           alt=""
+          width={460}
+          height={215}
           loading="lazy"
           decoding="async"
           onError={() => setFailed(true)}
