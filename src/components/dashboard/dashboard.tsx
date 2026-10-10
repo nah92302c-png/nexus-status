@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { Service } from "@/lib/types";
-import { SERVICE_STATUSES, STATUS_META } from "@/lib/types";
+import { STATUS_META, type ServiceStatus } from "@/lib/types";
 import { DEFAULT_FILTER, filterServices, type DashboardFilter } from "@/lib/filters";
 import { countByStatus } from "@/lib/status";
 import { formatUtcShort } from "@/lib/format";
@@ -114,6 +114,8 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
       ? "Live status"
       : "Reconnecting";
 
+  const VISIBLE_FILTER_STATUSES: ServiceStatus[] = ["online", "updating"];
+
   return (
     <div className="site-shell flex min-h-screen flex-col">
       <a className="skip-link" href="#products">
@@ -168,7 +170,7 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
             >
               All <span>{counts.total}</span>
             </button>
-            {SERVICE_STATUSES.map((status) => {
+            {VISIBLE_FILTER_STATUSES.map((status) => {
               const meta = STATUS_META[status];
               const active = filter.status === status;
               return (
