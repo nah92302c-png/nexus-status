@@ -114,7 +114,7 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
       ? "Live status"
       : "Reconnecting";
 
-  const VISIBLE_FILTER_STATUSES: ServiceStatus[] = ["online", "updating"];
+
 
   return (
     <div className="site-shell flex min-h-screen flex-col">
@@ -170,8 +170,8 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
             >
               All <span>{counts.total}</span>
             </button>
-            {VISIBLE_FILTER_STATUSES.map((status) => {
-              const meta = STATUS_META[status];
+            {["online", "updating"].map((status) => {
+              const meta = STATUS_META[status as ServiceStatus];
               const active = filter.status === status;
               return (
                 <button
@@ -180,10 +180,10 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
                   className={cn("filter", active && "active")}
                   aria-pressed={active}
                   data-testid={`count-${status}`}
-                  onClick={() => setStatus(status)}
+                  onClick={() => setStatus(status as DashboardFilter["status"])}
                 >
                   <i className={cn("legend-dot", status)} aria-hidden="true" />
-                  {meta.label} <span>{counts[status]}</span>
+                  {meta.label} <span>{counts[status as ServiceStatus]}</span>
                 </button>
               );
             })}
