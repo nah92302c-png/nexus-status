@@ -26,8 +26,8 @@ export function AdminNav() {
             className={cn(
               "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
               active
-                ? "bg-cyan-500/15 text-cyan-300"
-                : "text-slate-300 hover:text-white",
+                ? "bg-app-accent/15 text-app-accent"
+                : "text-app-muted hover:text-white",
             )}
           >
             {link.label}
