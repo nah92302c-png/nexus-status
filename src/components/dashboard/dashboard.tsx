@@ -23,6 +23,17 @@ async function fetchVisibleServices(): Promise<Service[]> {
   return parsed.data.data;
 }
 
+function getInitialLastSuccess(services: Service[]): number {
+  let newest: number | null = null;
+  for (const service of services) {
+    if (service.updated_at) {
+      const t = new Date(service.updated_at).getTime();
+      if (newest === null || t > newest) newest = t;
+    }
+  }
+  return newest ?? Date.now();
+}
+
 export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardProps) {
   const [services, setServices] = useState<Service[]>(initialServices);
   const [filter, setFilter] = useState<DashboardFilter>({
@@ -32,7 +43,7 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
   const [liveError, setLiveError] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [failures, setFailures] = useState(0);
-  const [lastSuccess, setLastSuccess] = useState<number | null>(null);
+  const [lastSuccess, setLastSuccess] = useState<number>(() => getInitialLastSuccess(initialServices));
   const liveTimer = useRef<number | null>(null);
   const countdownTimer = useRef<number | null>(null);
 
@@ -113,7 +124,7 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
           <div className="check-info">
             Last check
             <time id="last-checked">
-              {lastSuccess ? new Date(lastSuccess).toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }) : "—"}
+              {new Date(lastSuccess).toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
             </time>
           </div>
         </div>
