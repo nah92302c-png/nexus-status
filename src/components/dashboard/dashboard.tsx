@@ -135,7 +135,7 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
             >
               All <span>{counts.total}</span>
             </button>
-            {SERVICE_STATUSES.map((status) => {
+            {(["online", "updating"] as const).map((status) => {
               const meta = STATUS_META[status];
               return (
                 <button
