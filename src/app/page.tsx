@@ -20,8 +20,6 @@ export default async function HomePage() {
     const client = await getServerSupabase();
     services = await listVisibleServices(client);
   } else {
-    // Production with a missing connection: show an honest configuration
-    // error instead of fabricated sample data.
     return <ConfigError />;
   }
 

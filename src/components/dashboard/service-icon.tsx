@@ -19,32 +19,46 @@ export function monogramFor(name: string): string {
 }
 
 /**
- * Service artwork on the public dashboard. Purely decorative: the service name
- * is always rendered as real text next to it, so the image carries an empty
- * alt and is hidden from assistive tech. If the image is missing or fails to
- * load, the monogram fallback is shown instead.
+ * Service artwork on the public dashboard. Fills the entire product-art area.
+ * If the image is missing or fails to load, the monogram fallback is shown instead.
  */
 export function ServiceIcon({ name, iconUrl, className }: ServiceIconProps) {
   const [failed, setFailed] = useState(false);
   const showImage = Boolean(iconUrl) && !failed;
 
   return (
-    <div className={cn("product-art", className)} aria-hidden="true">
-      <span className="monogram">{monogramFor(name)}</span>
+    <div className={cn("product-art-content", className)} aria-hidden="true">
       {showImage ? (
-        // Artwork URLs are admin-supplied and may point at any host, so a plain
-        // <img> is used rather than next/image (which would reject unknown hosts).
+        // Admin-supplied URLs may point at any host; a plain <img> keeps
+        // them working without configuring next/image remote patterns.
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={iconUrl ?? undefined}
           alt=""
-          width={460}
-          height={215}
           loading="lazy"
           decoding="async"
           onError={() => setFailed(true)}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
-      ) : null}
+      ) : (
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "linear-gradient(135deg, #14161c 0%, #0b0c10 100%)",
+            fontSize: "2.5rem",
+            fontWeight: 900,
+            letterSpacing: "0.02em",
+            color: "#fff",
+            textShadow: "0 2px 10px #000",
+          }}
+        >
+          {monogramFor(name)}
+        </div>
+      )}
     </div>
   );
 }

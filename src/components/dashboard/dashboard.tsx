@@ -3,24 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { Service } from "@/lib/types";
-import { STATUS_META, type ServiceStatus } from "@/lib/types";
-import { DEFAULT_FILTER, filterServices, type DashboardFilter } from "@/lib/filters";
+import { SERVICE_STATUSES, STATUS_META } from "@/lib/types";
+import { filterServices, type DashboardFilter } from "@/lib/filters";
 import { countByStatus } from "@/lib/status";
-import { formatUtcShort } from "@/lib/format";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { publicServicesResponseSchema } from "@/lib/validation";
-import { cn } from "@/lib/cn";
 import { StatusCard } from "./status-card";
-import { DemoBanner } from "./demo-banner";
-
-interface DashboardProps {
-  initialServices: Service[];
-  demo: boolean;
-  pollIntervalMs: number;
-}
-
-const LIVE_ERROR =
-  "Live updates are temporarily unavailable; showing the last known state.";
 
 async function fetchVisibleServices(): Promise<Service[]> {
   const response = await fetch("/api/services", { cache: "no-store" });
@@ -35,39 +23,37 @@ async function fetchVisibleServices(): Promise<Service[]> {
   return parsed.data.data;
 }
 
-/** Newest `updated_at` across the services, used for the "last updated" line. */
-function lastUpdatedAt(services: Service[]): string | null {
-  let newest: string | null = null;
-  for (const service of services) {
-    if (!service.updated_at) continue;
-    if (newest === null || service.updated_at > newest) newest = service.updated_at;
-  }
-  return newest;
-}
-
 export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardProps) {
   const [services, setServices] = useState<Service[]>(initialServices);
-  const [filter, setFilter] = useState<DashboardFilter>(DEFAULT_FILTER);
+  const [filter, setFilter] = useState<DashboardFilter>({
+    query: "",
+    status: "all",
+  });
   const [liveError, setLiveError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  const [failures, setFailures] = useState(0);
+  const [lastSuccess, setLastSuccess] = useState<number | null>(null);
   const liveTimer = useRef<number | null>(null);
+  const countdownTimer = useRef<number | null>(null);
 
   const refresh = useCallback(async () => {
-    const next = await fetchVisibleServices();
-    setServices(next);
-    setLiveError(null);
-  }, []);
-
-  const manualRefresh = useCallback(async () => {
-    setRefreshing(true);
+    if (demo) return;
+    setIsChecking(true);
     try {
-      await refresh();
+      const next = await fetchVisibleServices();
+      setServices(next);
+      setLiveError(null);
+      setFailures(0);
+      setLastSuccess(Date.now());
     } catch {
-      setLiveError(LIVE_ERROR);
+      setFailures((f) => f + 1);
+      setLiveError(
+        "Status could not be retrieved. Automatic updates will retry shortly.",
+      );
     } finally {
-      setRefreshing(false);
+      setIsChecking(false);
     }
-  }, [refresh]);
+  }, [demo]);
 
   useEffect(() => {
     if (demo) return;
@@ -76,7 +62,11 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
     if (!supabase) return;
 
     const onLiveEvent = () => {
-      refresh().catch(() => setLiveError(LIVE_ERROR));
+      refresh().catch(() => {
+        setLiveError(
+          "Status could not be retrieved. Automatic updates will retry shortly.",
+        );
+      });
     };
 
     const channel = supabase
@@ -88,179 +78,165 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
       )
       .subscribe();
 
-    // Polling is a deliberate fallback: it keeps the dashboard correct even
-    // when Realtime is unavailable or a manual status change was applied
-    // outside the database (e.g. through a different server).
+    // Polling as fallback
     liveTimer.current = window.setInterval(onLiveEvent, pollIntervalMs);
+
+    // Countdown timer
+    countdownTimer.current = window.setInterval(() => {}, 1000);
 
     return () => {
       supabase.removeChannel(channel);
       if (liveTimer.current !== null) window.clearInterval(liveTimer.current);
+      if (countdownTimer.current !== null) window.clearInterval(countdownTimer.current);
     };
   }, [demo, pollIntervalMs, refresh]);
 
   const counts = useMemo(() => countByStatus(services), [services]);
   const visible = useMemo(() => filterServices(services, filter), [services, filter]);
-  const updatedAt = useMemo(() => lastUpdatedAt(services), [services]);
+  const isStale = liveError !== null;
 
   const setQuery = (query: string) => setFilter((f) => ({ ...f, query }));
   const setStatus = (status: DashboardFilter["status"]) =>
     setFilter((f) => ({ ...f, status }));
 
-  const connected = liveError === null;
-  const connectionLabel = demo
-    ? "Demo data"
-    : connected
-      ? "Live status"
-      : "Reconnecting";
-
-
-
   return (
-    <div className="site-shell flex min-h-screen flex-col">
-      <a className="skip-link" href="#products">
-        Skip to products
-      </a>
-
-      <header className="site-header">
-        <Link className="brand" href="/" aria-label="STATUS home">
+    <div className="site-shell">
+      <header className="site-header" role="banner">
+        <Link className="brand" href="/" aria-label="STATUS">
           <svg className="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
-            <rect
-              x="3"
-              y="3"
-              width="34"
-              height="34"
-              rx="10"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            />
-            <path
-              d="M8 21h5l3-8 5 15 4-10 3 3h4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            <path d="M7 31V9h7l12 15V9h7v22h-7L14 16v15Z" />
+            <path className="brand-cut" d="m8 5 25 30" stroke="var(--color-app-bg)" strokeWidth="3" fill="none" />
           </svg>
           <h1>STATUS</h1>
         </Link>
-
         <div className="header-status">
-          <div className={cn("connection", !connected && "disconnected")}>
-            <span className="signal-dot" />
-            <span>{connectionLabel}</span>
+          <div id="connection" className={`connection ${isStale ? "disconnected" : "connected"}`}>
+            <span className="signal-dot" aria-hidden="true" />
+            <span id="connection-label">{isStale ? "Status disconnected" : "Live status"}</span>
           </div>
           <div className="check-info">
-            Last updated <time>{formatUtcShort(updatedAt)}</time>
+            Last check
+            <time id="last-checked">
+              {lastSuccess ? new Date(lastSuccess).toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }) : "—"}
+            </time>
           </div>
         </div>
       </header>
 
-      <main id="products" aria-label="Products" className="flex-1">
+      <main id="products" aria-label="Products">
         <div className="toolbar">
           <div className="status-filters" role="group" aria-label="Filter by status">
             <button
               type="button"
-              className={cn("filter", filter.status === "all" && "active")}
+              className={`filter ${filter.status === "all" ? "active" : ""}`}
+              data-filter="all"
               aria-pressed={filter.status === "all"}
-              data-testid="count-total"
               onClick={() => setStatus("all")}
             >
               All <span>{counts.total}</span>
             </button>
-            {["online", "updating"].map((status) => {
-              const meta = STATUS_META[status as ServiceStatus];
-              const active = filter.status === status;
+            {SERVICE_STATUSES.map((status) => {
+              const meta = STATUS_META[status];
               return (
                 <button
                   key={status}
                   type="button"
-                  className={cn("filter", active && "active")}
-                  aria-pressed={active}
-                  data-testid={`count-${status}`}
-                  onClick={() => setStatus(status as DashboardFilter["status"])}
+                  className={`filter ${filter.status === status ? "active" : ""} ${status === "updating" ? "updating" : ""}`}
+                  data-filter={status}
+                  aria-pressed={filter.status === status}
+                  onClick={() => setStatus(status)}
                 >
-                  <i className={cn("legend-dot", status)} aria-hidden="true" />
-                  {meta.label} <span>{counts[status as ServiceStatus]}</span>
+                  <i className={`legend-dot ${status === "updating" ? "updating" : ""}`} aria-hidden="true" />
+                  <span className="badge-label">{meta.label}</span> <span>{counts[status]}</span>
                 </button>
               );
             })}
           </div>
-
           <div className="toolbar-actions">
             <label className="search">
               <svg viewBox="0 0 20 20" aria-hidden="true">
-                <circle cx="8.5" cy="8.5" r="5.5" />
-                <path d="m13 13 4 4" />
+                <circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
+                <path d="m13 13 4 4" fill="none" stroke="currentColor" strokeWidth="1.4" />
               </svg>
               <span className="sr-only">Search services</span>
               <input
-                id="service-search"
+                id="product-search"
                 type="search"
                 value={filter.query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search…"
                 autoComplete="off"
                 maxLength={120}
               />
             </label>
-
             <button
               type="button"
+              id="refresh"
               className="refresh-button"
-              onClick={manualRefresh}
-              aria-busy={refreshing}
-              aria-label="Refresh status"
               title="Refresh status"
+              aria-label="Refresh status"
+              aria-busy={isChecking}
+              onClick={refresh}
+              disabled={isChecking}
             >
               <svg viewBox="0 0 20 20" aria-hidden="true">
-                <path d="M16.3 7A7 7 0 1 0 17 11M16.5 2.5V7h-4.5" />
+                <path d="M16.3 7A7 7 0 1 0 17 11M16.5 2.5V7h-4.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
               </svg>
             </button>
           </div>
         </div>
 
-        <div className="space-y-5">
-          {demo ? <DemoBanner /> : null}
+        {liveError ? (
+          <p id="status-notice" className="notice" role="status">
+            {liveError}
+          </p>
+        ) : null}
 
-          {liveError ? (
-            <p role="status" className="notice">
-              {liveError}
-            </p>
-          ) : null}
+        <noscript>
+          <div className="notice">
+            Enable JavaScript for automatic updates and search. Reload this page to check the latest status.
+          </div>
+        </noscript>
 
+        <div className="product-grid" id="product-grid" role="list">
           {visible.length === 0 ? (
-            <div className="empty-state">
+            <div id="empty-state" className="empty-state">
               <h2>No services found</h2>
-              <p>
-                {services.length === 0
-                  ? "No services have been published yet."
-                  : "No services match the current search or filter."}
-              </p>
+              <p>Try another name or status.</p>
+              <button type="button" id="clear-filters" onClick={() => setFilter({ query: "", status: "all" })}>
+                Clear filters
+              </button>
             </div>
           ) : (
-            <ul className="product-grid">
-              {visible.map((service) => (
-                <StatusCard key={service.id} service={service} />
-              ))}
-            </ul>
+            visible.map((service) => (
+              <StatusCard key={service.id} service={service} />
+            ))
           )}
         </div>
+
+        <p id="live-announcement" className="sr-only" aria-live="polite" aria-atomic="true" />
       </main>
 
       <footer className="site-footer">
-        <span>
-          {counts.total} {counts.total === 1 ? "service" : "services"}
+        <span id="results-count">
+          {visible.length === services.length
+            ? `${services.length} services`
+            : `${visible.length} of ${services.length} services`}
         </span>
-        <span className="flex items-center gap-3">
-          <span>
-            Status updates automatically · Last updated {formatUtcShort(updatedAt)}
-          </span>
-          <Link href="/admin">Admin</Link>
+        <span id="next-check">
+          {isChecking
+            ? "Checking status…"
+            : failures > 0
+            ? `Retry in ${Math.ceil(pollIntervalMs / 1000)}s`
+            : `Next check in ${Math.ceil(pollIntervalMs / 1000)}s`}
         </span>
       </footer>
     </div>
   );
+}
+
+interface DashboardProps {
+  initialServices: Service[];
+  demo: boolean;
+  pollIntervalMs: number;
 }
