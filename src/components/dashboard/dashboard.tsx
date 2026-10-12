@@ -103,10 +103,6 @@ export function Dashboard({ initialServices, demo, pollIntervalMs }: DashboardPr
     <div className="site-shell">
       <header className="site-header" role="banner">
         <Link className="brand" href="/" aria-label="STATUS">
-          <svg className="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
-            <path d="M7 31V9h7l12 15V9h7v22h-7L14 16v15Z" />
-            <path className="brand-cut" d="m8 5 25 30" stroke="var(--color-app-bg)" strokeWidth="3" fill="none" />
-          </svg>
           <h1>STATUS</h1>
         </Link>
         <div className="header-status">
